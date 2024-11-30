@@ -39,22 +39,30 @@ class Program
             name: "--log",
             description: "Enable logging to conversion.log.",
             getDefaultValue: () => false);
+        
+        var recursiveOption = new Option<bool>(
+            name: "--recursive",
+            description: "Enable recursive file processing (default: true).",
+            getDefaultValue: () => true);
 
 
-        var rootCommand = new RootCommand("BatchEncode - A tool for batch file encoding conversion.") { sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption };
+        var rootCommand = new RootCommand("BatchEncode - A tool for batch file encoding conversion.") { sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption, recursiveOption };
 
-        rootCommand.SetHandler(ConvertEncoding, sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption);
+        rootCommand.SetHandler(ConvertEncoding, sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption, recursiveOption);
 
         return await rootCommand.InvokeAsync(args);
     }
 
-    private static void ConvertEncoding(string sourceDirectory, string targetDirectory, string sourceEncoding, string targetEncoding, string filter, bool enableLogging)
+    private static void ConvertEncoding(string sourceDirectory, string targetDirectory, string sourceEncoding, string targetEncoding, string filter, bool enableLogging, bool isRecursive)
     {
         // 确保目标目录存在
         Directory.CreateDirectory(targetDirectory);
 
+        // 搜索文件的模式
+        var searchOption = isRecursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+
         // 获取要处理的文件列表
-        var files = Directory.GetFiles(sourceDirectory, filter, SearchOption.AllDirectories);
+        var files = Directory.GetFiles(sourceDirectory, filter, searchOption);
         var sourceEnc = Encoding.GetEncoding(sourceEncoding);
         var targetEnc = Encoding.GetEncoding(targetEncoding);
 
@@ -71,6 +79,7 @@ class Program
             logWriter.WriteLine($"Source Encoding: {sourceEncoding}");
             logWriter.WriteLine($"Target Encoding: {targetEncoding}");
             logWriter.WriteLine($"Filter: {filter}");
+            logWriter.WriteLine($"Recursive: {isRecursive}");
             logWriter.WriteLine();
         }
 
