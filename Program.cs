@@ -9,55 +9,42 @@ class Program
     static async Task<int> Main(string[] args)
     {
         // 定义命令行参数
-        var rootCommand = new RootCommand("BatchEncode: A tool to batch convert file encodings");
-
-        var sourceDirOption = new Option<string>(
+        var sourceOption = new Option<string>(
             name: "--source",
-            description: "Path to the source directory",
-            isDefault: false
-        )
-        { IsRequired = true };
+            description: "Source directory containing the files to convert."
+        );
 
-        var targetDirOption = new Option<string>(
+        var targetOption = new Option<string>(
             name: "--target",
-            description: "Path to the target directory",
-            isDefault: false
-        )
-        { IsRequired = true };
+            description: "Target directory to save the converted files."
+        );
 
         var sourceEncodingOption = new Option<string>(
             name: "--source-encoding",
-            description: "Source file encoding (e.g., GB2312, UTF-8)",
-            isDefault: false
-        )
-        { IsRequired = true };
+            description: "Encoding of the source files, e.g., UTF-8."
+        );
 
         var targetEncodingOption = new Option<string>(
             name: "--target-encoding",
-            description: "Target file encoding (e.g., UTF-8, ASCII)",
-            isDefault: false
-        )
-        { IsRequired = true };
+            description: "Encoding of the target files, e.g., ASCII."
+        );
 
         var filterOption = new Option<string>(
             name: "--filter",
-            description: "File extension filter (e.g., .txt, .csv). Leave empty for all files.",
-            isDefault: () => "*.*"
+            description: "Filter for files, e.g., *.txt (default: *.*).",
+            getDefaultValue: () => "*.*"
         );
 
-        // 添加参数到命令中
-        rootCommand.AddOption(sourceDirOption);
-        rootCommand.AddOption(targetDirOption);
-        rootCommand.AddOption(sourceEncodingOption);
-        rootCommand.AddOption(targetEncodingOption);
-        rootCommand.AddOption(filterOption);
+        var rootCommand = new RootCommand("BatchEncode - A tool for batch file encoding conversion.") { sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption };
 
-        rootCommand.Description = "BatchEncode: Convert file encodings in bulk with optional file filtering.";
+        rootCommand.SetHandler(
+            (source, target, sourceEncoding, targetEncoding, filter) =>
+            {
+                ConvertEncoding(source, target, sourceEncoding, targetEncoding, filter);
+            },
+            sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption
+        );
 
-        // 定义命令执行逻辑
-        rootCommand.Handler = CommandHandler.Create<string, string, string, string, string>(ConvertEncoding);
-
-        // 运行命令
         return await rootCommand.InvokeAsync(args);
     }
 
