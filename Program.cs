@@ -35,59 +35,90 @@ class Program
             getDefaultValue: () => "*.*"
         );
 
-        var rootCommand = new RootCommand("BatchEncode - A tool for batch file encoding conversion.") { sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption };
+        var logOption = new Option<bool>(
+            name: "--log",
+            description: "Enable logging to conversion.log.",
+            getDefaultValue: () => false);
 
-        rootCommand.SetHandler(
-            (source, target, sourceEncoding, targetEncoding, filter) =>
-            {
-                ConvertEncoding(source, target, sourceEncoding, targetEncoding, filter);
-            },
-            sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption
-        );
+
+        var rootCommand = new RootCommand("BatchEncode - A tool for batch file encoding conversion.") { sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption };
+
+        rootCommand.SetHandler(ConvertEncoding, sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption);
 
         return await rootCommand.InvokeAsync(args);
     }
 
-    private static void ConvertEncoding(string sourceDirectory, string targetDirectory, string sourceEncoding, string targetEncoding, string filter)
+    private static void ConvertEncoding(string sourceDirectory, string targetDirectory, string sourceEncoding, string targetEncoding, string filter, bool enableLogging)
     {
-        // 确保目标文件夹存在
+        // 确保目标目录存在
         Directory.CreateDirectory(targetDirectory);
 
-        // 获取需要处理的文件列表
+        // 获取要处理的文件列表
         var files = Directory.GetFiles(sourceDirectory, filter, SearchOption.AllDirectories);
-
-        // 设置源和目标编码
         var sourceEnc = Encoding.GetEncoding(sourceEncoding);
         var targetEnc = Encoding.GetEncoding(targetEncoding);
 
-        Console.WriteLine($"Starting encoding conversion for {files.Length} files...");
+        StreamWriter? logWriter = null;
+        if (enableLogging)
+        {
+            // 准备日志文件
+            var logFile = Path.Combine(targetDirectory, "conversion.log");
+            logWriter = new StreamWriter(logFile, append: false, encoding: Encoding.UTF8);
 
-        // 使用 Parallel.ForEach 并行处理
+            logWriter.WriteLine($"Conversion started at {DateTime.Now}");
+            logWriter.WriteLine($"Source Directory: {sourceDirectory}");
+            logWriter.WriteLine($"Target Directory: {targetDirectory}");
+            logWriter.WriteLine($"Source Encoding: {sourceEncoding}");
+            logWriter.WriteLine($"Target Encoding: {targetEncoding}");
+            logWriter.WriteLine($"Filter: {filter}");
+            logWriter.WriteLine();
+        }
+
+        Console.WriteLine($"Converting {files.Length} files...");
+
+        // 并行处理文件
         Parallel.ForEach(files, file =>
         {
             try
             {
-                // 计算目标文件路径
-                var relativePath = Path.GetRelativePath(sourceDirectory, file);
-                var targetFile = Path.Combine(targetDirectory, relativePath);
-
-                // 确保目标文件夹存在
+                var targetFile = Path.Combine(targetDirectory, Path.GetRelativePath(sourceDirectory, file));
                 Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
 
-                // 读取源文件内容
-                var content = File.ReadAllText(file, sourceEnc);
-
-                // 写入目标文件
-                File.WriteAllText(targetFile, content, targetEnc);
-
-                Console.WriteLine($"Converted: {file} -> {targetFile}");
+                // 转换文件内容
+                File.WriteAllText(targetFile, File.ReadAllText(file, sourceEnc), targetEnc);
+                Console.WriteLine($"Converted: {file}");
+                if (enableLogging)
+                {
+                    lock (logWriter!)
+                    {
+                        logWriter.WriteLine($"SUCCESS: {file} -> {targetFile}");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing file '{file}': {ex.Message}");
+                Console.WriteLine($"Error processing {file}: {ex.Message}");
+                if (enableLogging)
+                {
+                    lock (logWriter!)
+                    {
+                        logWriter.WriteLine($"ERROR: {file} - {ex.Message}");
+                    }
+                }
             }
         });
 
-        Console.WriteLine("Encoding conversion completed.");
+        if (enableLogging)
+        {
+            logWriter!.WriteLine();
+            logWriter.WriteLine($"Conversion completed at {DateTime.Now}");
+            logWriter.Close();
+        }
+
+        Console.WriteLine("Conversion completed.");
+        if (enableLogging)
+        {
+            Console.WriteLine("See conversion.log for details.");
+        }
     }
 }
