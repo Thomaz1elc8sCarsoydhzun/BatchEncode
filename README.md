@@ -18,7 +18,7 @@
  
 - **操作系统** ：Windows, macOS, Linux
  
-- **.NET 版本** ：.NET 6 或更高版本
+- **.NET 版本** ：.NET 8 或更高版本
 
 
 ---
