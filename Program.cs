@@ -48,40 +48,46 @@ class Program
         return await rootCommand.InvokeAsync(args);
     }
 
-    private static void ConvertEncoding(string source, string target, string sourceEncoding, string targetEncoding, string filter)
+    private static void ConvertEncoding(string sourceDirectory, string targetDirectory, string sourceEncoding, string targetEncoding, string filter)
     {
-        try
+        // 确保目标文件夹存在
+        Directory.CreateDirectory(targetDirectory);
+
+        // 获取需要处理的文件列表
+        var files = Directory.GetFiles(sourceDirectory, filter, SearchOption.AllDirectories);
+
+        // 设置源和目标编码
+        var sourceEnc = Encoding.GetEncoding(sourceEncoding);
+        var targetEnc = Encoding.GetEncoding(targetEncoding);
+
+        Console.WriteLine($"Starting encoding conversion for {files.Length} files...");
+
+        // 使用 Parallel.ForEach 并行处理
+        Parallel.ForEach(files, file =>
         {
-            // 获取编码
-            Encoding sourceEnc = Encoding.GetEncoding(sourceEncoding);
-            Encoding targetEnc = Encoding.GetEncoding(targetEncoding);
-
-            // 确保目标目录存在
-            if (!Directory.Exists(target))
+            try
             {
-                Directory.CreateDirectory(target);
-            }
+                // 计算目标文件路径
+                var relativePath = Path.GetRelativePath(sourceDirectory, file);
+                var targetFile = Path.Combine(targetDirectory, relativePath);
 
-            // 遍历源文件夹中的匹配文件
-            foreach (string filePath in Directory.GetFiles(source, filter))
+                // 确保目标文件夹存在
+                Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+
+                // 读取源文件内容
+                var content = File.ReadAllText(file, sourceEnc);
+
+                // 写入目标文件
+                File.WriteAllText(targetFile, content, targetEnc);
+
+                Console.WriteLine($"Converted: {file} -> {targetFile}");
+            }
+            catch (Exception ex)
             {
-                string fileName = Path.GetFileName(filePath);
-                string targetFilePath = Path.Combine(target, fileName);
-
-                // 读取文件内容
-                string content = File.ReadAllText(filePath, sourceEnc);
-
-                // 写入新文件
-                File.WriteAllText(targetFilePath, content, targetEnc);
-
-                Console.WriteLine($"Converted: {filePath} -> {targetFilePath}");
+                Console.WriteLine($"Error processing file '{file}': {ex.Message}");
             }
+        });
 
-            Console.WriteLine("Encoding conversion completed successfully.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
+        Console.WriteLine("Encoding conversion completed.");
     }
 }
