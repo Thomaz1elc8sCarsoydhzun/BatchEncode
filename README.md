@@ -43,7 +43,7 @@ cd BatchEncode
 dotnet build -c Release
 ```
  
-3. 生成的可执行文件位于 `bin/Release/net6.0/` 目录下。
+3. 生成的可执行文件位于 `bin/Release/net8.0/` 目录下。
 
 
 ---
