@@ -1,8 +1,8 @@
 using System;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 class Program
 {
@@ -38,28 +38,52 @@ class Program
         var logOption = new Option<bool>(
             name: "--log",
             description: "Enable logging to conversion.log.",
-            getDefaultValue: () => false);
-        
+            getDefaultValue: () => false
+        );
+
         var recursiveOption = new Option<bool>(
             name: "--recursive",
             description: "Enable recursive file processing (default: true).",
-            getDefaultValue: () => true);
+            getDefaultValue: () => true
+        );
 
+        var backupOption = new Option<bool>(
+            name: "--backup",
+            description: "Enable backup of original files before conversion.",
+            getDefaultValue: () => false
+        );
 
-        var rootCommand = new RootCommand("BatchEncode - A tool for batch file encoding conversion.") { sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption, recursiveOption };
+        var rootCommand = new RootCommand("BatchEncode - A tool for batch file encoding conversion.")
+        {
+            sourceOption,
+            targetOption,
+            sourceEncodingOption,
+            targetEncodingOption,
+            filterOption,
+            logOption,
+            recursiveOption,
+            backupOption
+        };
 
-        rootCommand.SetHandler(ConvertEncoding, sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption, recursiveOption);
+        rootCommand.SetHandler(ConvertEncoding, sourceOption, targetOption, sourceEncodingOption, targetEncodingOption, filterOption, logOption, recursiveOption, backupOption);
 
         return await rootCommand.InvokeAsync(args);
     }
 
-    private static void ConvertEncoding(string sourceDirectory, string targetDirectory, string sourceEncoding, string targetEncoding, string filter, bool enableLogging, bool isRecursive)
+    private static void ConvertEncoding(string sourceDirectory, string targetDirectory, string sourceEncoding, string targetEncoding, string filter, bool enableLogging, bool isRecursive, bool enableBackup)
     {
         Directory.CreateDirectory(targetDirectory);
         var searchOption = isRecursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         var files = Directory.GetFiles(sourceDirectory, filter, searchOption);
         var sourceEnc = Encoding.GetEncoding(sourceEncoding);
         var targetEnc = Encoding.GetEncoding(targetEncoding);
+
+        string? backupDirectory = null;
+        if (enableBackup)
+        {
+            backupDirectory = Path.Combine(targetDirectory, "backup");
+            Directory.CreateDirectory(backupDirectory);
+        }
 
         StreamWriter? logWriter = null;
         if (enableLogging)
@@ -73,6 +97,7 @@ class Program
             logWriter.WriteLine($"Target Encoding: {targetEncoding}");
             logWriter.WriteLine($"Filter: {filter}");
             logWriter.WriteLine($"Recursive: {isRecursive}");
+            logWriter.WriteLine($"Backup Enabled: {enableBackup}");
             logWriter.WriteLine();
         }
 
@@ -81,6 +106,14 @@ class Program
         {
             try
             {
+                // 备份文件
+                if (enableBackup)
+                {
+                    var backupFile = Path.Combine(backupDirectory!, Path.GetRelativePath(sourceDirectory, file));
+                    Directory.CreateDirectory(Path.GetDirectoryName(backupFile)!);
+                    File.Copy(file, backupFile, overwrite: true);
+                }
+
                 var detectedEncoding = DetectFileEncoding(file);
                 if (!string.Equals(detectedEncoding, sourceEnc.EncodingName, StringComparison.OrdinalIgnoreCase))
                 {
@@ -133,6 +166,7 @@ class Program
             Console.WriteLine("See conversion.log for details.");
         }
     }
+
     private static string DetectFileEncoding(string filePath)
     {
         using var reader = new StreamReader(filePath, Encoding.Default, detectEncodingFromByteOrderMarks: true);
