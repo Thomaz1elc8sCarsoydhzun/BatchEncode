@@ -32,7 +32,7 @@
 
 
 ```bash
-git clone https://github.com/yourusername/BatchEncode.git
+git clone https://github.com/Thomaz1elc8sCarsoydhzun/BatchEncode.git
 cd BatchEncode
 ```
  
