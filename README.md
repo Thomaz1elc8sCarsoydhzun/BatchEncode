@@ -49,23 +49,32 @@ dotnet build -c Release
 ---
 
 
-## 使用方法 
-
-### 基本命令格式 
-
+### 使用方法 
+在命令行中运行 `BatchEncode` 程序，并使用以下参数：
 
 ```bash
-BatchEncode --source <source_directory> --target <target_directory> --source-encoding <source_encoding> --target-encoding <target_encoding> [--filter <file_extension>]
+BatchEncode --source <源目录> --target <目标目录> --source-encoding <源文件编码> --target-encoding <目标文件编码> [可选参数]
 ```
 
-### 参数说明 
-| 参数 | 必须 | 描述 | 
-| --- | --- | --- | 
-| --source | 是 | 源文件夹路径，包含需要转换的文件。 | 
-| --target | 是 | 目标文件夹路径，转换后的文件将存放在此文件夹中。 | 
-| --source-encoding | 是 | 源文件的编码格式，例如 UTF-8 或 GB2312。 | 
-| --target-encoding | 是 | 目标文件的编码格式，例如 UTF-8 或 ASCII。 | 
-| --filter | 否 | 文件扩展名过滤器，例如 *.txt（默认值为 *.*，表示处理所有文件）。 | 
+#### 必填参数 
+ 
+- `--source`：指定包含待转换文件的源目录。
+ 
+- `--target`：指定保存转换后文件的目标目录。
+ 
+- `--source-encoding`：源文件的编码格式（例如：`UTF-8`）。
+ 
+- `--target-encoding`：目标文件的编码格式（例如：`ASCII`）。
+
+#### 可选参数 
+ 
+- `--filter`：文件筛选条件（例如：`*.txt`）。默认为 `*.*`。
+ 
+- `--log`：启用日志记录功能，日志文件保存为 `conversion.log`。默认值：`false`。
+ 
+- `--recursive`：启用递归模式，处理子目录中的文件。默认值：`true`。
+ 
+- `--backup`：启用备份功能，将源文件备份到目标目录下的 `backup` 文件夹中。默认值：`false`。
 
 
 ---
@@ -73,29 +82,26 @@ BatchEncode --source <source_directory> --target <target_directory> --source-enc
 
 ### 示例 
 
-#### 1. 转换所有文件 
-将 `C:\SourceFolder` 中的所有文件从 `GB2312` 转换为 `UTF-8`，并保存到 `C:\TargetFolder`：
+#### 启用备份和日志功能 
+将 `input` 目录中的 `.txt` 文件转换到 `output` 目录，将编码从 `UTF-8` 转换为 `ASCII`，同时启用备份和日志记录功能：
 
 ```bash
-BatchEncode --source "C:\SourceFolder" --target "C:\TargetFolder" --source-encoding "GB2312" --target-encoding "UTF-8"
+BatchEncode --source ./input --target ./output --source-encoding UTF-8 --target-encoding ASCII --filter *.txt --log --backup
 ```
 
-#### 2. 转换特定类型文件 
-只转换 `.txt` 文件：
+#### 非递归转换，禁用备份 
+将 `input` 目录中的文件（不包括子目录）转换到 `output`，编码从 `UTF-8` 转换为 `ASCII`，禁用备份：
 
 ```bash
-BatchEncode --source "C:\SourceFolder" --target "C:\TargetFolder" --source-encoding "UTF-8" --target-encoding "ASCII" --filter "*.txt"
+BatchEncode --source ./input --target ./output --source-encoding UTF-8 --target-encoding ASCII --recursive false
 ```
 
-#### 3. 查看帮助文档 
-
-运行以下命令查看参数和使用说明：
-
+#### 默认筛选条件，禁用日志 
+将 `input` 目录中的所有文件转换到 `output`，不设置文件筛选条件，也不启用日志功能：
 
 ```bash
-BatchEncode --help
+BatchEncode --source ./input --target ./output --source-encoding UTF-8 --target-encoding ASCII
 ```
-
 
 ---
 
